@@ -9,42 +9,57 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List _currencies;
   final List<MaterialColor> _colors = [Colors.blue, Colors.indigo, Colors.red];
 
   final formatCurrency = new NumberFormat.simpleCurrency();
   var formatNumber = NumberFormat('###.0#', 'en_US');
 
-  @override
-  void initState() {
-    _getCurrencies().then((returnedCurrencies) {
-      setState(() {
-        _currencies = returnedCurrencies;
-      });
-    });
-    super.initState();
-  }
+  String url =
+      "https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
 
-  Future<List> _getCurrencies() async {
-    String url =
-        "https://sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
+  Future<String> _getCurrencies() async {
     http.Response response = await http.get(url,
         headers: {"X-CMC_PRO_API_KEY": "51420a53-2b39-4949-87ce-36015a4e8289"});
-    Map json = jsonDecode(response.body);
-    return json["data"];
+
+    return response.body;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
-          title: Text("Krypto App"),
-        ),
-        body: _cryptoWidget());
+      appBar: AppBar(
+        leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
+        title: Text("Krypto App"),
+      ),
+      // _cryptoWidget()
+      body: FutureBuilder(
+          future: _getCurrencies(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done &&
+                snapshot.hasData) {
+              Map currencies = jsonDecode(snapshot.data);
+              return _cryptoWidget(currencies['data']);
+            } else if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                  child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  CircularProgressIndicator(),
+                  SizedBox(height: 10),
+                  Text("fetching crypto currencies...")
+                ],
+              ));
+            } else {
+              return Center(
+                child: Text("No coins at this moment"),
+              );
+            }
+          }),
+    );
   }
 
-  Widget _cryptoWidget() {
+  Widget _cryptoWidget(List _currencies) {
     return Column(
       children: <Widget>[
         Flexible(
